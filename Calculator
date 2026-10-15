@@ -1,32 +1,108 @@
-import os
-import re
-import tkinter as tk
+class RedCalculator:
+    def __init__(self, root):
+        self.root = root
+        root.title("Calculator")
+        root.configure(bg=BG)
+        root.resizable(False, False)
 
-# Optional music (pip install pygame-ce). The calculator still works without it.
-try:
-    import pygame
-    pygame.mixer.init()
-    HAS_MUSIC = True
-except Exception:
-    HAS_MUSIC = False
+        self.expression = ""
+        self.singing = False
+        self.token = 0
 
-# ---------------- EDIT THESE ----------------
-SECRET_CODE = "67+3"          # type this, then press "=" to start the lyrics
-SONG_FILE = "song.mp3"        # put your song in the same folder (optional)
-CREDIT = "Made by You"        # change to your name
-CHAR_DELAY = 70               # ms between each letter (typewriter speed)
-LINE_DELAY = 900              # ms pause after each line
-FINAL_RESULT = "70"           # shown after the lyrics finish
-LYRICS = [                    # write your own lines here
-    "first line of your lyrics",
-    "second line of your lyrics",
-    "third line of your lyrics",
-]
-# --------------------------------------------
+        self.display_var = tk.StringVar(value="0")
+        tk.Label(
+            root, textvariable=self.display_var, font=("Consolas", 16, "bold"),
+            fg="white", bg=DISPLAY_BG, anchor="e", justify="right",
+            wraplength=300, width=24, height=3, padx=10,
+        ).grid(row=0, column=0, columnspan=4, padx=12, pady=12, sticky="nsew")
 
-BG = "#b3200a"
-BTN = "#d9360f"
-BTN_OP = "#8f1a08"
-BTN_HOVER = "#f04a1a"
-DISPLAY_BG = "#2a0a05"
+        rows = [
+            ["7", "8", "9", "/"],
+            ["4", "5", "6", "*"],
+            ["1", "2", "3", "-"],
+            ["0", ".", "=", "+"],
+        ]
+        for r, row in enumerate(rows, start=1):
+            for c, key in enumerate(row):
+                self.make_button(key, r, c, 1,
+                                 BTN_OP if key in "/*-+" else BTN)
 
+        self.make_button("C", 5, 0, 4, DISPLAY_BG)
+
+        tk.Label(root, text=CREDIT, font=("Arial", 10, "bold italic"),
+                 fg="#ffd0c0", bg=BG).grid(row=6, column=0, columnspan=4,
+                                           sticky="e", padx=14, pady=(4, 10))
+
+    def make_button(self, text, row, col, span, color):
+        b = tk.Button(
+            self.root, text=text, font=("Arial", 14, "bold"), fg="white",
+            bg=color, activebackground=BTN_HOVER, activeforeground="white",
+            relief="flat", bd=0, width=6 if span == 1 else 28, height=2,
+            command=lambda: self.on_press(text),
+        )
+        b.grid(row=row, column=col, columnspan=span, padx=3, pady=3,
+               sticky="nsew")
+        b.bind("<Enter>", lambda e: b.config(bg=BTN_HOVER))
+        b.bind("<Leave>", lambda e: b.config(bg=color))
+
+    def on_press(self, key):
+        if key == "C":
+            self.clear()
+        elif self.singing:
+            return
+        elif key == "=":
+            self.calculate()
+        else:
+            self.expression += key
+            self.display_var.set(self.expression)
+
+    def clear(self):
+        self.token += 1
+        self.singing = False
+        self.expression = ""
+        self.display_var.set("0")
+        if HAS_MUSIC:
+            pygame.mixer.music.stop()
+
+    def calculate(self):
+        if self.expression.strip() == SECRET_CODE:
+            self.start_lyrics()
+            return
+        if not re.fullmatch(r"[0-9+\-*/. ]+", self.expression):
+            self.display_var.set("Error")
+            self.expression = ""
+            return
+        try:
+            result = str(eval(self.expression, {"__builtins__": {}}, {}))
+            self.display_var.set(result)
+            self.expression = result
+        except Exception:
+            self.display_var.set("Error")
+            self.expression = ""
+
+    def start_lyrics(self):
+        self.singing = True
+        self.token += 1
+        if HAS_MUSIC:
+            path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                SONG_FILE)
+            if os.path.exists(path):
+                pygame.mixer.music.load(path)
+                pygame.mixer.music.play()
+        self.type_step(self.token, 0, 0)
+
+    def type_step(self, token, line_i, char_i):
+        if token != self.token:
+            return
+        if line_i >= len(LYRICS):
+            self.singing = False
+            self.expression = FINAL_RESULT
+            self.display_var.set(FINAL_RESULT)
+            return
+        line = LYRICS[line_i]
+        if char_i <= len(line):
+            self.display_var.set(line[:char_i])
+            self.root.after(CHAR_DELAY, self.type_step, token, line_i,
+                            char_i + 1)
+        else:
+            self.root.after(LINE_DELAY, self.type_step, token, line_i + 1, 0)
