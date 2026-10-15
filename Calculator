@@ -1,0 +1,32 @@
+import os
+import re
+import tkinter as tk
+
+# Optional music (pip install pygame-ce). The calculator still works without it.
+try:
+    import pygame
+    pygame.mixer.init()
+    HAS_MUSIC = True
+except Exception:
+    HAS_MUSIC = False
+
+# ---------------- EDIT THESE ----------------
+SECRET_CODE = "67+3"          # type this, then press "=" to start the lyrics
+SONG_FILE = "song.mp3"        # put your song in the same folder (optional)
+CREDIT = "Made by You"        # change to your name
+CHAR_DELAY = 70               # ms between each letter (typewriter speed)
+LINE_DELAY = 900              # ms pause after each line
+FINAL_RESULT = "70"           # shown after the lyrics finish
+LYRICS = [                    # write your own lines here
+    "first line of your lyrics",
+    "second line of your lyrics",
+    "third line of your lyrics",
+]
+# --------------------------------------------
+
+BG = "#b3200a"
+BTN = "#d9360f"
+BTN_OP = "#8f1a08"
+BTN_HOVER = "#f04a1a"
+DISPLAY_BG = "#2a0a05"
+
